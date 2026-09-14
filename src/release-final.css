@@ -1,0 +1,1 @@
+.reset-button{min-height:44px;min-width:44px}.rail-divider{cursor:ew-resize;touch-action:none}.theme-icon svg{display:block;transition:transform 180ms ease}.theme-toggle[aria-pressed='true'] .theme-icon svg{transform:rotate(-18deg)}@media(prefers-reduced-motion:reduce){.theme-icon svg{transition:none}}
