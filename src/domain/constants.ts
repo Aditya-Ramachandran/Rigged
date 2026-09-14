@@ -1,0 +1,10 @@
+export const TOTAL_WEIGHT_BP = 10_000
+export const MIN_CRITERIA = 2
+export const MAX_CRITERIA = 8
+export const MIN_OPTIONS = 2
+export const MAX_OPTIONS = 5
+export const MAX_TITLE_CODE_POINTS = 100
+export const MAX_NAME_CODE_POINTS = 60
+export const MAX_ID_CODE_POINTS = 100
+export const MIN_SCORE = 1
+export const MAX_SCORE = 10
