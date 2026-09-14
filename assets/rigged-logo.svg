@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title description">
+  <title id="title">Rigged? logo</title>
+  <desc id="description">The Rigged wordmark above a segmented one-hundred-percent pressure rail.</desc>
+  <rect width="760" height="220" fill="#F4F6F2" />
+
+  <g transform="translate(54 38)">
+    <text
+      x="0"
+      y="82"
+      fill="#151A18"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="86"
+      font-weight="800"
+      letter-spacing="-6"
+    >Rigged<tspan fill="#D94732">?</tspan></text>
+    <text
+      x="4"
+      y="116"
+      fill="#69736F"
+      font-family="Arial, Helvetica, sans-serif"
+      font-size="13"
+      font-weight="700"
+      letter-spacing="2.5"
+    >PUT YOUR PRIORITIES UNDER PRESSURE</text>
+
+    <g transform="translate(4 140)">
+      <rect width="228" height="18" fill="#2457F5" />
+      <rect x="228" width="163" height="18" fill="#7890EF" />
+      <rect x="391" width="163" height="18" fill="#AAB4AF" />
+      <rect x="554" width="98" height="18" fill="#C9EB57" />
+      <g fill="#F4F6F2" stroke="#151A18" stroke-width="2">
+        <rect x="223" y="-5" width="10" height="28" />
+        <rect x="386" y="-5" width="10" height="28" />
+        <rect x="549" y="-5" width="10" height="28" />
+      </g>
+    </g>
+  </g>
+</svg>

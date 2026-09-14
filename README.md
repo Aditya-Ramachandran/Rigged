@@ -1,4 +1,6 @@
-# Rigged?
+<p align="center">
+  <img src="assets/rigged-logo.svg" alt="Rigged? — put your priorities under pressure" width="640">
+</p>
 
 Most difficult decisions do not come with an obvious answer. They come with a bunch of things that matter, a few choices that are annoyingly close, and the suspicion that you may already be leaning toward one of them.
 
@@ -9,6 +11,8 @@ You create the options, choose your own criteria, decide how important each one 
 The interesting question is: **how easy would it be to change the winner?**
 
 If a tiny adjustment to one priority flips the result, Rigged? should tell you. If the answer survives every reasonable change, it should tell you that too. I do not want the math to make the decision for anyone; I want it to expose what is actually making the decision.
+
+![How Rigged? works: set priorities, score options, and stress-test the result](assets/how-rigged-works.svg)
 
 ## What I want it to feel like
 

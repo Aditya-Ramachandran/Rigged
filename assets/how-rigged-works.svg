@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 680" role="img" aria-labelledby="title description">
+  <title id="title">How Rigged? works</title>
+  <desc id="description">Three steps show setting priorities, scoring options, and stress-testing the winning result.</desc>
+  <rect width="1280" height="680" fill="#F4F6F2" />
+
+  <style>
+    .ui { font-family: Arial, Helvetica, sans-serif; fill: #151A18; }
+    .editorial { font-family: Georgia, 'Times New Roman', serif; fill: #151A18; }
+    .step { font-size: 12px; font-weight: 700; letter-spacing: 2px; fill: #2457F5; }
+    .heading { font-size: 29px; font-weight: 800; letter-spacing: -1.2px; }
+    .body { font-size: 17px; fill: #69736F; }
+    .small { font-size: 12px; font-weight: 700; }
+    .tiny { font-size: 10px; font-weight: 700; }
+  </style>
+
+  <text class="ui" x="54" y="65" font-size="25" font-weight="800" letter-spacing="-1.5">Rigged<tspan fill="#D94732">?</tspan></text>
+  <text class="ui" x="54" y="126" font-size="43" font-weight="800" letter-spacing="-2">How an answer gets put under pressure.</text>
+  <text class="editorial body" x="54" y="160">Choose what matters, score what is real, then find out how easily the winner changes.</text>
+
+  <line x1="54" y1="198" x2="1226" y2="198" stroke="#CFD5D1" />
+
+  <g transform="translate(54 242)">
+    <text class="ui step" x="0" y="0">01 / SET PRIORITIES</text>
+    <text class="ui heading" x="0" y="44">What matters?</text>
+    <text class="editorial body" x="0" y="77">Every criterion shares the</text>
+    <text class="editorial body" x="0" y="101">same 100%. More here means</text>
+    <text class="editorial body" x="0" y="125">less somewhere else.</text>
+
+    <g transform="translate(0 164)">
+      <text class="ui tiny" x="0" y="-13" fill="#69736F">100% PRESSURE RAIL</text>
+      <rect width="126" height="42" fill="#2457F5" />
+      <rect x="126" width="90" height="42" fill="#7890EF" />
+      <rect x="216" width="90" height="42" fill="#AAB4AF" />
+      <rect x="306" width="54" height="42" fill="#C9EB57" />
+      <g class="ui tiny" text-anchor="middle">
+        <text x="63" y="26" fill="#FFFFFF">35%</text>
+        <text x="171" y="26" fill="#FFFFFF">25%</text>
+        <text x="261" y="26">25%</text>
+        <text x="333" y="26">15%</text>
+      </g>
+      <g fill="#F4F6F2" stroke="#151A18" stroke-width="2">
+        <rect x="121" y="-5" width="10" height="52" />
+        <rect x="211" y="-5" width="10" height="52" />
+        <rect x="301" y="-5" width="10" height="52" />
+      </g>
+      <g class="ui tiny" fill="#69736F">
+        <text x="0" y="68">COMPENSATION</text>
+        <text x="126" y="68">GROWTH</text>
+        <text x="216" y="68">BALANCE</text>
+        <text x="306" y="68">MISSION</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(449 242)">
+    <text class="ui step" x="0" y="0">02 / SCORE OPTIONS</text>
+    <text class="ui heading" x="0" y="44">Score the reality.</text>
+    <text class="editorial body" x="0" y="77">Rate each option from 1–10.</text>
+    <text class="editorial body" x="0" y="101">The ranking updates as your</text>
+    <text class="editorial body" x="0" y="125">scores and priorities change.</text>
+
+    <g transform="translate(0 157)">
+      <g class="ui small">
+        <text x="0" y="21">Northstar</text>
+        <text x="0" y="76">Civic Studio</text>
+        <text x="0" y="131">Atlas Health</text>
+      </g>
+      <g transform="translate(108 0)">
+        <g fill="#2457F5">
+          <rect width="184" height="27" />
+          <rect y="55" width="214" height="27" />
+          <rect y="110" width="178" height="27" />
+        </g>
+        <g class="ui small" text-anchor="end">
+          <text x="248" y="19">7.30</text>
+          <text x="248" y="74">7.45</text>
+          <text x="248" y="129">7.25</text>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(844 242)">
+    <text class="ui step" x="0" y="0">03 / STRESS-TEST</text>
+    <text class="ui heading" x="0" y="44">What did you rig?</text>
+    <text class="editorial body" x="0" y="77">Rigged? finds the smallest</text>
+    <text class="editorial body" x="0" y="101">single-weight change that</text>
+    <text class="editorial body" x="0" y="125">alters the answer.</text>
+
+    <g transform="translate(0 151)">
+      <rect width="382" height="190" fill="#E9EEFF" />
+      <text class="ui tiny" x="22" y="31" fill="#D94732" letter-spacing="1.4">THE VERDICT</text>
+      <text class="ui" x="22" y="72" font-size="27" font-weight="800">Civic Studio wins.</text>
+      <rect x="22" y="94" width="338" height="14" fill="#D7E0FF" />
+      <rect x="22" y="94" width="84" height="14" fill="#C9EB57" />
+      <line x1="92" y1="87" x2="92" y2="117" stroke="#D94732" stroke-width="3" />
+      <text class="ui small" x="22" y="142">Lower Balance: 25% → 22.07%</text>
+      <text class="editorial" x="22" y="170" font-size="16">Northstar Labs takes the lead.</text>
+    </g>
+  </g>
+
+  <g fill="none" stroke="#69736F" stroke-width="2">
+    <path d="M420 406h18" />
+    <path d="m432 398 8 8-8 8" />
+    <path d="M815 406h18" />
+    <path d="m827 398 8 8-8 8" />
+  </g>
+
+  <line x1="54" y1="625" x2="1226" y2="625" stroke="#CFD5D1" />
+  <text class="ui" x="54" y="654" font-size="12" font-weight="700" letter-spacing="1.6" fill="#69736F">ONE WEIGHT CHANGES · THE REST REBALANCE · NO HIDDEN PRESETS</text>
+</svg>
