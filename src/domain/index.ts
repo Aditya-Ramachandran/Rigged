@@ -1,4 +1,5 @@
 export * from './constants'
+export * from './computeWeightedScores'
 export * from './result'
 export * from './rebalanceWeights'
 export { SAMPLE_DECISION } from './sampleDecision'
