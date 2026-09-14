@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { SAMPLE_DECISION, computeWeightedScores, generateExplanation, rebalanceWeights, runSensitivityAnalysis, type CriterionId, type Decision } from './domain'
+import { SAMPLE_DECISION, computeWeightedScores, generateExplanation, rebalanceWeights, runSensitivityAnalysis, validateDecision, type CriterionId, type Decision } from './domain'
 
 type Theme = 'light' | 'dark'
 const APPEARANCE_KEY = 'rigged:appearance:v1'
+const DECISION_KEY = 'rigged:decision:v1'
 const cloneSample = (): Decision => structuredClone(SAMPLE_DECISION)
 const weight = (bp: number) => `${(bp / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`
 
@@ -11,16 +12,31 @@ function initialTheme(): Theme { try { const saved: unknown = JSON.parse(localSt
 function ThemeIcon({ dark }: { dark: boolean }) { return <span className="theme-icon" aria-hidden="true"><span>{dark ? '☾' : '☀'}</span><span>{dark ? 'Dark' : 'Light'}</span></span> }
 function uniqueId(): string { return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `criterion-${Date.now()}-${Math.random().toString(36).slice(2)}` }
 function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> { return Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key)) }
+function initialDecision(): { decision: Decision; recovered: boolean } { try { const saved: unknown = JSON.parse(localStorage.getItem(DECISION_KEY) ?? 'null'); if (typeof saved === 'object' && saved !== null && 'schemaVersion' in saved && 'decision' in saved && saved.schemaVersion === 1) { const checked = validateDecision(saved.decision); if (checked.ok) return { decision: checked.value, recovered: false }; return { decision: cloneSample(), recovered: true } } } catch { return { decision: cloneSample(), recovered: true } } return { decision: cloneSample(), recovered: false } }
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme)
-  const [decision, setDecision] = useState<Decision>(cloneSample)
+  const [stored] = useState(initialDecision)
+  const [decision, setDecision] = useState<Decision>(stored.decision)
+  const [persistence, setPersistence] = useState(stored.recovered ? 'recovered-invalid' : 'idle')
   const [drafts, setDrafts] = useState<Record<CriterionId, string>>({})
   const [errors, setErrors] = useState<Record<CriterionId, string>>({})
   const names = useRef(new Map<CriterionId, HTMLInputElement>())
+  const firstPersistenceRun = useRef(true)
 
   useEffect(() => { document.documentElement.dataset.theme = theme }, [theme])
+  useEffect(() => {
+    if (firstPersistenceRun.current) { firstPersistenceRun.current = false; return }
+    const checked = validateDecision(decision)
+    if (!checked.ok) return
+    const save = () => { try { localStorage.setItem(DECISION_KEY, JSON.stringify({ schemaVersion: 1, savedAt: new Date().toISOString(), decision: checked.value })); setPersistence('saved') } catch { setPersistence('unavailable') } }
+    const timeout = window.setTimeout(save, 250)
+    const flush = () => { if (document.visibilityState === 'hidden') { window.clearTimeout(timeout); save() } }
+    document.addEventListener('visibilitychange', flush)
+    return () => { window.clearTimeout(timeout); document.removeEventListener('visibilitychange', flush) }
+  }, [decision])
   const toggleTheme = () => { const next = theme === 'light' ? 'dark' : 'light'; setTheme(next); try { localStorage.setItem(APPEARANCE_KEY, JSON.stringify({ schemaVersion: 1, theme: next })) } catch { /* in-memory selection still works */ } }
+  const resetDecision = () => { if (JSON.stringify(decision) !== JSON.stringify(SAMPLE_DECISION) && !window.confirm('Reset this decision to the job-offer sample?')) return; setDecision(cloneSample()); setDrafts({}); setErrors({}) }
   const setWeight = (criterionId: string, targetWeightBp: number) => {
     const next = rebalanceWeights({ criteria: decision.criteria, criterionId, targetWeightBp })
     if (next.ok) setDecision((current) => ({ ...current, criteria: [...next.value.criteria] }))
@@ -64,8 +80,8 @@ export default function App() {
 
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Skip to priorities</a>
-    <header className="site-header"><a className="wordmark" href="#main-content" aria-label="Rigged? home">Rigged<span>?</span></a><p className="header-note">A decision matrix with receipts.</p><button className="theme-toggle" type="button" aria-pressed={theme === 'dark'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} onClick={toggleTheme}><ThemeIcon dark={theme === 'dark'} /></button></header>
-    <main id="main-content">
+    <header className="site-header"><a className="wordmark" href="#main-content" aria-label="Rigged? home">Rigged<span>?</span></a><p className="header-note">A decision matrix with receipts.</p><div className="header-actions"><button className="reset-button" type="button" onClick={resetDecision}>Reset</button><button className="theme-toggle" type="button" aria-pressed={theme === 'dark'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} onClick={toggleTheme}><ThemeIcon dark={theme === 'dark'} /></button></div></header>
+    <main id="main-content">{persistence === 'recovered-invalid' && <p className="storage-notice" role="status">We couldn’t read your saved decision, so the sample was restored.</p>}{persistence === 'unavailable' && <p className="storage-notice" role="status">Your changes are available for this visit, but this browser can’t save them locally.</p>}
       <section className="case-intro" aria-labelledby="page-title"><p className="kicker">Decision file / 01</p><h1 id="page-title">{decision.title}.</h1><p className="intro-copy">Put your priorities under pressure. The answer should be able to explain itself.</p></section>
       <section className="priority-sheet" aria-labelledby="priority-title">
         <div className="section-heading"><div><p className="kicker">Your priorities</p><h2 id="priority-title">Where the pressure sits</h2></div><p className="total" aria-live="polite">{weight(decision.criteria.reduce((sum, criterion) => sum + criterion.weightBp, 0))} total</p></div>
