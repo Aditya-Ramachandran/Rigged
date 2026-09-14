@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { SAMPLE_DECISION, rebalanceWeights, type CriterionId, type Decision } from './domain'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { SAMPLE_DECISION, computeWeightedScores, generateExplanation, rebalanceWeights, runSensitivityAnalysis, type CriterionId, type Decision } from './domain'
 
 type Theme = 'light' | 'dark'
 const APPEARANCE_KEY = 'rigged:appearance:v1'
@@ -51,6 +51,16 @@ export default function App() {
     if (!rebalanced.ok) return
     setDecision((current) => ({ ...current, criteria: rebalanced.value.criteria.filter((criterion) => criterion.id !== id), options: current.options.map((option) => ({ ...option, scores: withoutKey(option.scores, id) })) }))
   }
+  const renameOption = (id: string, name: string) => setDecision((current) => ({ ...current, options: current.options.map((option) => option.id === id ? { ...option, name } : option) }))
+  const setScore = (optionId: string, criterionId: string, score: number) => setDecision((current) => ({ ...current, options: current.options.map((option) => option.id === optionId ? { ...option, scores: { ...option.scores, [criterionId]: score } } : option) }))
+  const addOption = () => { if (decision.options.length >= 5) return; const id = uniqueId(); setDecision((current) => ({ ...current, options: [...current.options, { id, name: `Option ${current.options.length + 1}`, scores: Object.fromEntries(current.criteria.map((criterion) => [criterion.id, 5])) }] })) }
+  const removeOption = (id: string) => { if (decision.options.length > 2) setDecision((current) => ({ ...current, options: current.options.filter((option) => option.id !== id) })) }
+  const analysis = useMemo(() => {
+    const scores = computeWeightedScores(decision); const sensitivity = runSensitivityAnalysis(decision)
+    if (!scores.ok || !sensitivity.ok) return null
+    const explanation = generateExplanation({ decision, scores: scores.value, sensitivity: sensitivity.value })
+    return explanation.ok ? { scores: scores.value, sensitivity: sensitivity.value, explanation: explanation.value } : null
+  }, [decision])
 
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Skip to priorities</a>
@@ -64,7 +74,8 @@ export default function App() {
         <button className="add-priority" type="button" onClick={addCriterion} disabled={decision.criteria.length >= 8}>Add a priority <span aria-hidden="true">+</span></button>
         <p className="sheet-note">Every adjustment keeps the total at exactly 100%. The other priorities rebalance proportionally.</p>
       </section>
-      <section className="verdict-preview" aria-labelledby="verdict-title"><div className="verdict-index">Evidence-led, not spreadsheet-led.</div><p className="kicker">Next: score the options</p><h2 id="verdict-title">The verdict will show its working.</h2><p>In the next phase, you’ll score each offer and see which priority is actually carrying the decision.</p></section>
+      <section className="options-sheet" aria-labelledby="options-title"><div className="section-heading"><div><p className="kicker">The options</p><h2 id="options-title">Score the evidence</h2></div><button className="add-priority" type="button" onClick={addOption} disabled={decision.options.length >= 5}>Add option +</button></div>{decision.options.map((option) => <article className="option-card" key={option.id}><div className="control-row"><label className="sr-only" htmlFor={`option-${option.id}`}>Option name</label><input id={`option-${option.id}`} value={option.name} onChange={(event) => renameOption(option.id, event.target.value)} /><button type="button" onClick={() => removeOption(option.id)} disabled={decision.options.length <= 2}>Remove</button></div><div className="score-grid">{decision.criteria.map((criterion) => <fieldset key={criterion.id}><legend>{criterion.name} <span>{weight(criterion.weightBp)}</span></legend><div className="score-strip" role="radiogroup" aria-label={`${option.name}, ${criterion.name} score`}>{Array.from({ length: 10 }, (_, index) => index + 1).map((score) => <label key={score}><input type="radio" name={`${option.id}-${criterion.id}`} value={score} checked={option.scores[criterion.id] === score} onChange={() => setScore(option.id, criterion.id, score)} /><span>{score}</span></label>)}</div></fieldset>)}</div></article>)}</section>
+      {analysis && <section className="verdict-preview live-verdict" aria-labelledby="verdict-title"><div className="verdict-index">Live verdict / {analysis.explanation.fragilityLabel}</div><p className="kicker">The verdict</p><h2 id="verdict-title">{analysis.explanation.verdictHeadline}</h2><p>{analysis.explanation.verdictSummary}</p>{analysis.explanation.driverStatement && <><p className="verdict-driver">{analysis.explanation.driverStatement}</p><p className="verdict-detail">{analysis.explanation.driverDetail}</p></>}<p className="sensitivity"><strong>Stress test:</strong> {analysis.explanation.sensitivityStatement}</p><ol className="ranking">{analysis.scores.ranking.map((ranked) => <li key={ranked.optionId}><span>{ranked.rank}</span><strong>{decision.options.find((option) => option.id === ranked.optionId)?.name}</strong><em>{ranked.totalPoints.toFixed(2)}</em></li>)}</ol></section>}
     </main>
     <footer className="site-footer"><div className="footer-rule" aria-hidden="true" /><p className="footer-story">Rigged? began with an uncomfortable question: are you choosing—or are your priorities choosing for you? It makes that hidden pressure visible, one honest decision at a time.</p><div className="footer-meta"><a href="https://github.com/Aditya-Ramachandran/Rigged" target="_blank" rel="noopener noreferrer">View the Rigged? source on GitHub</a><p>Made with <span aria-label="love">❤️</span> by Aditya &amp; GPT-Sol</p></div></footer>
   </div>
