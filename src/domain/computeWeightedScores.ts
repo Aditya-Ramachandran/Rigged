@@ -40,14 +40,10 @@ interface RankedWithInputOrder extends RankedOption {
   readonly inputIndex: number
 }
 
-/** Computes the authoritative ranking using integer contribution units. */
-export function computeWeightedScores(
-  decision: Decision,
-): DomainResult<WeightedScoresValue> {
-  const validated = validateDecision(decision)
-  if (!validated.ok) return validated
-
-  const canonicalDecision = validated.value
+/** Internal validated-input path shared by the bounded sensitivity search. */
+export function computeWeightedScoresValidated(
+  canonicalDecision: Decision,
+): WeightedScoresValue {
   const rankedWithInputOrder: RankedWithInputOrder[] =
     canonicalDecision.options.map((option, inputIndex) => {
       const contributions = canonicalDecision.criteria.map((criterion) => {
@@ -105,16 +101,13 @@ export function computeWeightedScores(
 
   if (topOptionIds.length !== 1) {
     return {
-      ok: true,
-      value: {
-        ranking,
-        topOptionIds,
-        winnerId: null,
-        runnerUpOptionIds: [],
-        marginUnits: null,
-        marginPoints: null,
-        driver: null,
-      },
+      ranking,
+      topOptionIds,
+      winnerId: null,
+      runnerUpOptionIds: [],
+      marginUnits: null,
+      marginPoints: null,
+      driver: null,
     }
   }
 
@@ -152,15 +145,22 @@ export function computeWeightedScores(
   })
 
   return {
-    ok: true,
-    value: {
-      ranking,
-      topOptionIds,
-      winnerId,
-      runnerUpOptionIds,
-      marginUnits,
-      marginPoints: marginUnits / 10_000,
-      driver,
-    },
+    ranking,
+    topOptionIds,
+    winnerId,
+    runnerUpOptionIds,
+    marginUnits,
+    marginPoints: marginUnits / 10_000,
+    driver,
   }
+}
+
+/** Computes the authoritative ranking using integer contribution units. */
+export function computeWeightedScores(
+  decision: Decision,
+): DomainResult<WeightedScoresValue> {
+  const validated = validateDecision(decision)
+  if (!validated.ok) return validated
+
+  return { ok: true, value: computeWeightedScoresValidated(validated.value) }
 }

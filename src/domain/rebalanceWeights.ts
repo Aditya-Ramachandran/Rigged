@@ -328,13 +328,11 @@ function validateRequest(input: unknown): DomainResult<ValidatedRequest> {
 }
 
 /** Rebalances one weight while preserving an exact 10,000 bp total. */
-export function rebalanceWeights(
-  request: RebalanceWeightsRequest,
-): DomainResult<RebalanceWeightsValue> {
-  const validated = validateRequest(request)
-  if (!validated.ok) return failure(validated.errors)
-
-  const { criteria, targetIndex, targetWeightBp } = validated.value
+export function rebalanceValidatedCriteria(
+  criteria: readonly Criterion[],
+  targetIndex: number,
+  targetWeightBp: WeightBp,
+): RebalanceWeightsValue {
   const oldTargetWeightBp = criteria[targetIndex]!.weightBp
   const oldOtherTotal = TOTAL_WEIGHT_BP - oldTargetWeightBp
   const remaining = TOTAL_WEIGHT_BP - targetWeightBp
@@ -397,5 +395,19 @@ export function rebalanceWeights(
         ]
   })
 
-  return { ok: true, value: { criteria: nextCriteria, changed } }
+  return { criteria: nextCriteria, changed }
+}
+
+/** Validates and rebalances one weight without mutating the request. */
+export function rebalanceWeights(
+  request: RebalanceWeightsRequest,
+): DomainResult<RebalanceWeightsValue> {
+  const validated = validateRequest(request)
+  if (!validated.ok) return failure(validated.errors)
+
+  const { criteria, targetIndex, targetWeightBp } = validated.value
+  return {
+    ok: true,
+    value: rebalanceValidatedCriteria(criteria, targetIndex, targetWeightBp),
+  }
 }
