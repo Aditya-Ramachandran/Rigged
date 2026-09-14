@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { SAMPLE_DECISION, rebalanceWeights, type CriterionId, type Decision } from './domain'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { SAMPLE_DECISION, computeWeightedScores, generateExplanation, rebalanceWeights, runSensitivityAnalysis, validateDecision, type CriterionId, type Decision } from './domain'
 
 type Theme = 'light' | 'dark'
 const APPEARANCE_KEY = 'rigged:appearance:v1'
+const DECISION_KEY = 'rigged:decision:v1'
 const cloneSample = (): Decision => structuredClone(SAMPLE_DECISION)
 const weight = (bp: number) => `${(bp / 100).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1')}%`
 
@@ -11,16 +12,31 @@ function initialTheme(): Theme { try { const saved: unknown = JSON.parse(localSt
 function ThemeIcon({ dark }: { dark: boolean }) { return <span className="theme-icon" aria-hidden="true"><span>{dark ? '☾' : '☀'}</span><span>{dark ? 'Dark' : 'Light'}</span></span> }
 function uniqueId(): string { return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `criterion-${Date.now()}-${Math.random().toString(36).slice(2)}` }
 function withoutKey<T>(record: Record<string, T>, key: string): Record<string, T> { return Object.fromEntries(Object.entries(record).filter(([entryKey]) => entryKey !== key)) }
+function initialDecision(): { decision: Decision; recovered: boolean } { try { const saved: unknown = JSON.parse(localStorage.getItem(DECISION_KEY) ?? 'null'); if (typeof saved === 'object' && saved !== null && 'schemaVersion' in saved && 'decision' in saved && saved.schemaVersion === 1) { const checked = validateDecision(saved.decision); if (checked.ok) return { decision: checked.value, recovered: false }; return { decision: cloneSample(), recovered: true } } } catch { return { decision: cloneSample(), recovered: true } } return { decision: cloneSample(), recovered: false } }
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme)
-  const [decision, setDecision] = useState<Decision>(cloneSample)
+  const [stored] = useState(initialDecision)
+  const [decision, setDecision] = useState<Decision>(stored.decision)
+  const [persistence, setPersistence] = useState(stored.recovered ? 'recovered-invalid' : 'idle')
   const [drafts, setDrafts] = useState<Record<CriterionId, string>>({})
   const [errors, setErrors] = useState<Record<CriterionId, string>>({})
   const names = useRef(new Map<CriterionId, HTMLInputElement>())
+  const firstPersistenceRun = useRef(true)
 
   useEffect(() => { document.documentElement.dataset.theme = theme }, [theme])
+  useEffect(() => {
+    if (firstPersistenceRun.current) { firstPersistenceRun.current = false; return }
+    const checked = validateDecision(decision)
+    if (!checked.ok) return
+    const save = () => { try { localStorage.setItem(DECISION_KEY, JSON.stringify({ schemaVersion: 1, savedAt: new Date().toISOString(), decision: checked.value })); setPersistence('saved') } catch { setPersistence('unavailable') } }
+    const timeout = window.setTimeout(save, 250)
+    const flush = () => { if (document.visibilityState === 'hidden') { window.clearTimeout(timeout); save() } }
+    document.addEventListener('visibilitychange', flush)
+    return () => { window.clearTimeout(timeout); document.removeEventListener('visibilitychange', flush) }
+  }, [decision])
   const toggleTheme = () => { const next = theme === 'light' ? 'dark' : 'light'; setTheme(next); try { localStorage.setItem(APPEARANCE_KEY, JSON.stringify({ schemaVersion: 1, theme: next })) } catch { /* in-memory selection still works */ } }
+  const resetDecision = () => { if (JSON.stringify(decision) !== JSON.stringify(SAMPLE_DECISION) && !window.confirm('Reset this decision to the job-offer sample?')) return; setDecision(cloneSample()); setDrafts({}); setErrors({}) }
   const setWeight = (criterionId: string, targetWeightBp: number) => {
     const next = rebalanceWeights({ criteria: decision.criteria, criterionId, targetWeightBp })
     if (next.ok) setDecision((current) => ({ ...current, criteria: [...next.value.criteria] }))
@@ -51,11 +67,21 @@ export default function App() {
     if (!rebalanced.ok) return
     setDecision((current) => ({ ...current, criteria: rebalanced.value.criteria.filter((criterion) => criterion.id !== id), options: current.options.map((option) => ({ ...option, scores: withoutKey(option.scores, id) })) }))
   }
+  const renameOption = (id: string, name: string) => setDecision((current) => ({ ...current, options: current.options.map((option) => option.id === id ? { ...option, name } : option) }))
+  const setScore = (optionId: string, criterionId: string, score: number) => setDecision((current) => ({ ...current, options: current.options.map((option) => option.id === optionId ? { ...option, scores: { ...option.scores, [criterionId]: score } } : option) }))
+  const addOption = () => { if (decision.options.length >= 5) return; const id = uniqueId(); setDecision((current) => ({ ...current, options: [...current.options, { id, name: `Option ${current.options.length + 1}`, scores: Object.fromEntries(current.criteria.map((criterion) => [criterion.id, 5])) }] })) }
+  const removeOption = (id: string) => { if (decision.options.length > 2) setDecision((current) => ({ ...current, options: current.options.filter((option) => option.id !== id) })) }
+  const analysis = useMemo(() => {
+    const scores = computeWeightedScores(decision); const sensitivity = runSensitivityAnalysis(decision)
+    if (!scores.ok || !sensitivity.ok) return null
+    const explanation = generateExplanation({ decision, scores: scores.value, sensitivity: sensitivity.value })
+    return explanation.ok ? { scores: scores.value, sensitivity: sensitivity.value, explanation: explanation.value } : null
+  }, [decision])
 
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Skip to priorities</a>
-    <header className="site-header"><a className="wordmark" href="#main-content" aria-label="Rigged? home">Rigged<span>?</span></a><p className="header-note">A decision matrix with receipts.</p><button className="theme-toggle" type="button" aria-pressed={theme === 'dark'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} onClick={toggleTheme}><ThemeIcon dark={theme === 'dark'} /></button></header>
-    <main id="main-content">
+    <header className="site-header"><a className="wordmark" href="#main-content" aria-label="Rigged? home">Rigged<span>?</span></a><p className="header-note">A decision matrix with receipts.</p><div className="header-actions"><button className="reset-button" type="button" onClick={resetDecision}>Reset</button><button className="theme-toggle" type="button" aria-pressed={theme === 'dark'} aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'} onClick={toggleTheme}><ThemeIcon dark={theme === 'dark'} /></button></div></header>
+    <main id="main-content">{persistence === 'recovered-invalid' && <p className="storage-notice" role="status">We couldn’t read your saved decision, so the sample was restored.</p>}{persistence === 'unavailable' && <p className="storage-notice" role="status">Your changes are available for this visit, but this browser can’t save them locally.</p>}
       <section className="case-intro" aria-labelledby="page-title"><p className="kicker">Decision file / 01</p><h1 id="page-title">{decision.title}.</h1><p className="intro-copy">Put your priorities under pressure. The answer should be able to explain itself.</p></section>
       <section className="priority-sheet" aria-labelledby="priority-title">
         <div className="section-heading"><div><p className="kicker">Your priorities</p><h2 id="priority-title">Where the pressure sits</h2></div><p className="total" aria-live="polite">{weight(decision.criteria.reduce((sum, criterion) => sum + criterion.weightBp, 0))} total</p></div>
@@ -64,7 +90,8 @@ export default function App() {
         <button className="add-priority" type="button" onClick={addCriterion} disabled={decision.criteria.length >= 8}>Add a priority <span aria-hidden="true">+</span></button>
         <p className="sheet-note">Every adjustment keeps the total at exactly 100%. The other priorities rebalance proportionally.</p>
       </section>
-      <section className="verdict-preview" aria-labelledby="verdict-title"><div className="verdict-index">Evidence-led, not spreadsheet-led.</div><p className="kicker">Next: score the options</p><h2 id="verdict-title">The verdict will show its working.</h2><p>In the next phase, you’ll score each offer and see which priority is actually carrying the decision.</p></section>
+      <section className="options-sheet" aria-labelledby="options-title"><div className="section-heading"><div><p className="kicker">The options</p><h2 id="options-title">Score the evidence</h2></div><button className="add-priority" type="button" onClick={addOption} disabled={decision.options.length >= 5}>Add option +</button></div>{decision.options.map((option) => <article className="option-card" key={option.id}><div className="control-row"><label className="sr-only" htmlFor={`option-${option.id}`}>Option name</label><input id={`option-${option.id}`} value={option.name} onChange={(event) => renameOption(option.id, event.target.value)} /><button type="button" onClick={() => removeOption(option.id)} disabled={decision.options.length <= 2}>Remove</button></div><div className="score-grid">{decision.criteria.map((criterion) => <fieldset key={criterion.id}><legend>{criterion.name} <span>{weight(criterion.weightBp)}</span></legend><div className="score-strip" role="radiogroup" aria-label={`${option.name}, ${criterion.name} score`}>{Array.from({ length: 10 }, (_, index) => index + 1).map((score) => <label key={score}><input type="radio" name={`${option.id}-${criterion.id}`} value={score} checked={option.scores[criterion.id] === score} onChange={() => setScore(option.id, criterion.id, score)} /><span>{score}</span></label>)}</div></fieldset>)}</div></article>)}</section>
+      {analysis && <section className="verdict-preview live-verdict" aria-labelledby="verdict-title"><div className="verdict-index">Live verdict / {analysis.explanation.fragilityLabel}</div><p className="kicker">The verdict</p><h2 id="verdict-title">{analysis.explanation.verdictHeadline}</h2><p>{analysis.explanation.verdictSummary}</p>{analysis.explanation.driverStatement && <><p className="verdict-driver">{analysis.explanation.driverStatement}</p><p className="verdict-detail">{analysis.explanation.driverDetail}</p></>}<p className="sensitivity"><strong>Stress test:</strong> {analysis.explanation.sensitivityStatement}</p><ol className="ranking">{analysis.scores.ranking.map((ranked) => <li key={ranked.optionId}><span>{ranked.rank}</span><strong>{decision.options.find((option) => option.id === ranked.optionId)?.name}</strong><em>{ranked.totalPoints.toFixed(2)}</em></li>)}</ol></section>}
     </main>
     <footer className="site-footer"><div className="footer-rule" aria-hidden="true" /><p className="footer-story">Rigged? began with an uncomfortable question: are you choosing—or are your priorities choosing for you? It makes that hidden pressure visible, one honest decision at a time.</p><div className="footer-meta"><a href="https://github.com/Aditya-Ramachandran/Rigged" target="_blank" rel="noopener noreferrer">View the Rigged? source on GitHub</a><p>Made with <span aria-label="love">❤️</span> by Aditya &amp; GPT-Sol</p></div></footer>
   </div>
